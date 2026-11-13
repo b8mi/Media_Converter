@@ -1,5 +1,2 @@
-
-
 # No Python packages required from pip.
 # Install FFmpeg and FFprobe separately and make them available on PATH in system    .
-
