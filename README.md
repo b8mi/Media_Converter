@@ -1,19 +1,20 @@
+
 # Python Media Converter
 
-A small, offline **audio and video converter** built with Python and FFmpeg. It runs in your terminal: choose a file, pick a format, set the output location, and let it convert. No account, cloud upload, or online conversion website needed.
+A simple, local, offline **audio and video converter** created using Python and FFmpeg. To use it, run it in your terminal: select a file, choose a format, select your output location, and it will convert. No login, no uploads to the internet, and no conversion websites!
 
-I made this as one straightforward script instead of a large media editor. It handles video-to-video conversions, audio-to-audio conversions, and extracting audio from videos that have an audio track.
+I built this as one simple script instead of a big media editor. It takes care of video-to-video, audio-to-audio conversions, and extracting audio from videos that contain an audio track.
 
 ## What it can do
 
-- Convert video between popular formats, including **MP4, MKV, MOV, WebM, and AVI**.
-- Turn a video into an **animated GIF** (without sound).
-- Extract an audio track from video as **MP3, WAV, FLAC, M4A, AAC, OGG, Opus, or WMA**.
-- Inspect the input with `ffprobe` and list relevant output formats when available.
-- Hide formats whose required encoders are missing from your FFmpeg build.
-- Show a live conversion progress bar when the file duration can be detected.
-- Choose an output folder and filename, with prompts before replacing an existing output.
-- Run another conversion without restarting the program.
+- Convert between widely used video formats such as **MP4, MKV, MOV, WebM, and AVI**.
+- Create an **animated GIF** from a video without sound.
+- Grab an audio stream from a video in **MP3, WAV, FLAC, M4A, AAC, OGG, Opus, or WMA**.
+- Check the input with `ffprobe` and list the supported output formats when available.
+- Hide formats that require missing encoders from your FFmpeg build.
+- Display a live progress bar during conversion if the file duration is known.
+- Select an output folder and filename, with a prompt before overwriting an existing output file.
+- Perform one more conversion without exiting the program.
 
 ## Supported output formats
 
@@ -28,35 +29,35 @@ I made this as one straightforward script instead of a large media editor. It ha
 | | Opus |
 | | WMA |
 
-The exact choices you see depend on the codecs supported by your FFmpeg installation and the audio/video streams present in your source file. A video must contain audio if you want to extract sound from it.
+The exact selections you get depend on the codecs supported by your FFmpeg installation and the audio/video streams in the source file. A video must contain an audio stream if you want to extract sound from it.
 
 ## Requirements
 
-- **Python 3.8 or newer** (Python 3.10+ recommended).
+- **Python 3.8 or higher** (Recommended: Python 3.10+).
 - **FFmpeg**, including the `ffmpeg` command available on your system's `PATH`.
-- **FFprobe** is recommended for detecting media streams and duration. It normally comes with FFmpeg.
+- **FFprobe** is recommended for checking media streams and duration. It normally comes with FFmpeg.
 
-There are **no third-party Python packages** to install with pip. `converter.py` uses only Python's standard library, but FFmpeg itself is a separate program that you need to install.
+You don't need to install any other third-party Python packages with pip. `converter.py` only uses Python's built-in modules, but FFmpeg is a separate program that you will have to install.
 
 ### Installing FFmpeg
 
-- **Windows:** Get FFmpeg from [ffmpeg.org/download.html](https://ffmpeg.org/download.html), install a Windows build, and add its `bin` folder to your `PATH`.
+- **Windows:** Download FFmpeg from [ffmpeg.org/download.html](https://ffmpeg.org/download.html), install a Windows build, and add its `bin` directory to your `PATH`.
 - **macOS (Homebrew):** `brew install ffmpeg`
 - **Ubuntu/Debian:** `sudo apt install ffmpeg`
 
-Check the installation in a new terminal:
+Verify the installation in a new terminal:
 
 ```bash
 ffmpeg -version
 ffprobe -version
 ```
 
-If the commands are not recognized, FFmpeg may not be installed or may not be on your `PATH` yet.
+If the commands are not recognized, FFmpeg may not be installed or might not be on your `PATH` yet.
 
 ## How to use
 
 1. Download this repository or clone it.
-2. Open a terminal in the repository folder.
+2. Open a terminal in your repository folder.
 3. Run the converter:
 
    ```bash
@@ -65,11 +66,11 @@ If the commands are not recognized, FFmpeg may not be installed or may not be on
 
    On some systems, use `python3 converter.py` instead.
 
-4. Paste or drag in the path of an audio or video file.
-5. Choose an output format from the menu by **number** or **extension** (for example, `mp3`).
-6. Choose an output folder. Press **Enter** to use the source file's folder.
-7. Enter a new filename. Press **Enter** to keep the original name with the new extension.
-8. Let the conversion finish; the script prints the saved file's path and size. You can then convert another file.
+4. Paste or drag in the path of the audio or video file.
+5. Select an output format from the list by **number** or **extension** (e.g., `mp3`).
+6. Select an output folder. Hit **Enter** to save it in the same folder as the source file.
+7. Specify a new filename. Hit **Enter** to keep the existing name and change only the extension.
+8. Allow the conversion to complete. The script will show the path and size of the saved file. You can then proceed to convert another file.
 
 ### Example
 
@@ -86,20 +87,21 @@ File name [Enter = clip]: voice-only
 
 Converting to MP3...
   [##############################] 100.0%
+
 Done! Saved to: C:\Videos\voice-only.mp3
 ```
 
-*This is an illustrative example of the prompts; the format menu and progress details vary by file.*
+*The prompts shown are just an example. The format menu and progress details depend on the file.*
 
 ## A few useful details
 
-- **Offline:** Once Python and FFmpeg are installed, the conversion happens locally. The script does not upload your files.
-- **Quality:** Converting to a lossy format (such as MP3 or H.264 video) can reduce quality. Converting a previously compressed file to FLAC or WAV cannot restore quality already lost.
-- **GIFs:** The GIF preset creates an animated image at about 12 frames per second, scales it to 480 pixels wide, and removes audio.
-- **Input files:** The converter processes **one source file at a time**. It is not a video editor or a batch merging tool.
-- **Progress:** A percentage is shown when FFprobe can determine the duration; otherwise, elapsed media time is displayed.
-- **Output safety:** The script refuses to overwrite the *source* file. If another output file already exists, it asks for confirmation before replacing it.
-- **Encoder availability:** Some FFmpeg builds lack codecs such as `libx264`, `libvpx-vp9`, or `libopus`, so the corresponding formats may not appear.
+- **Offline:** After the initial installation of Python and FFmpeg, everything gets converted locally. The script never uploads your files.
+- **Quality:** Converting to a lossy format (like MP3 or H.264 video) can reduce quality. Converting already compressed audio to FLAC or WAV will not recover whatever quality was already lost.
+- **GIFs:** The GIF preset generates an animated image at about 12 frames per second, scales it to 480 pixels wide, and excludes the sound.
+- **Input files:** The converter takes **one source file at a time**. It is not a video editor or a batch file merging tool.
+- **Progress:** Shows a percentage if the file duration is available through FFprobe. Otherwise, it shows elapsed media time.
+- **Output safety:** The script will never overwrite the source file. If the output file already exists, it asks before replacing it.
+- **Encoder availability:** Not all FFmpeg builds include encoders like `libx264`, `libvpx-vp9`, or `libopus`. If they are missing, the formats that require them will not appear.
 
 ## Repository files
 
@@ -108,10 +110,12 @@ Python-Media-Converter/
 ├── converter.py            # Audio/video conversion script
 ├── README.md               # Instructions and format information
 ├── requirements.txt        # Python dependency note
-├── .gitignore              # Local and temporary files to exclude
-└── GITHUB-DESCRIPTION.txt  # Short description for the GitHub About field
+├── .gitignore              # Local and temporary files to ignore
+└── GITHUB-DESCRIPTION.txt  # Brief description for the GitHub About field
 ```
 
 ## Project notes
 
-This is a command-line tool, not a graphical application. It is designed for quick, everyday conversions without an internet connection after setup. If you find a format that fails, include the source type, selected output format, and FFmpeg error message when reporting the issue (avoid sharing private media files).
+It's a CLI program, not a GUI. It is meant for quick, day-to-day conversions and doesn't require an internet connection after installation.
+
+When reporting format issues, include the source file type, chosen output format, and the FFmpeg error message. Just make sure not to share any private media files.
