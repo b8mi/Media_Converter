@@ -1,4 +1,4 @@
-     
+      
 # Python Media Converter
 
 A simple, local, offline **audio and video converter** created using Python and FFmpeg. To use it, run it in your terminal: select a file, choose a format, select your output location, and it will convert. No login, no uploads to the internet, and no conversion websites!
