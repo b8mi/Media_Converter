@@ -1,4 +1,3 @@
- 
 import json
 import math
 import os
@@ -314,7 +313,7 @@ def parse_timestamp(raw):
     return sum(value * 60 ** index for index, value in enumerate(reversed(values)))
 
 
-def step_trim(info):
+def step_trim(info, batch=False):
     duration = info.get("duration") if info else None
 
     if not yes_no("Convert only a selected time range?"):
@@ -324,7 +323,7 @@ def step_trim(info):
         try:
             start = parse_timestamp(ask("Start [0]: ") or "0")
             raw = ask("End [Enter = end of file]: ")
-            end = parse_timestamp(raw) if raw else duration
+            end = parse_timestamp(raw) if raw else (None if batch else duration)
 
             if duration is not None and start >= duration:
                 raise ValueError("Start must be before the end.")
@@ -575,7 +574,7 @@ def run_ffmpeg(command, duration):
         return False, errors.read().decode(errors="replace")
 
 
-def convert_safely(src, dest, ext, info, start, end, quality):
+def convert_safely(src, dest, ext, info, start, end, quality, batch=False):
     with tempfile.NamedTemporaryFile(
         prefix=".converting-",
         suffix=dest.suffix,
@@ -610,6 +609,10 @@ def convert_safely(src, dest, ext, info, start, end, quality):
 
     except KeyboardInterrupt:
         print("\nConversion cancelled.")
+
+        if batch:
+            raise
+
         return False
 
     except OSError as error:
@@ -654,6 +657,202 @@ def convert_once(encoders):
     return True
 
 
+def batch_input():
+    files = []
+    seen = set()
+
+    extensions = set(FORMATS) | {
+        "m4v", "mpeg", "mpg", "wmv", "flv", "ts",
+        "mts", "m2ts", "3gp", "aiff", "aif", "mka",
+        "oga", "ogv", "amr", "ac3"
+    }
+
+    print("\nEnter file or folder paths separated by semicolons.")
+    print("Press Enter on an empty line when done.")
+    print("Type q to cancel.")
+
+    while True:
+        raw = ask("Add files: ")
+
+        if raw.lower() in ("q", "quit", "exit"):
+            return []
+
+        if not raw:
+            if files:
+                return files
+
+            print("Add at least one media file.")
+            continue
+
+        whole = clean_path(raw)
+
+        if whole.exists():
+            paths = [whole]
+        else:
+            paths = [clean_path(part) for part in raw.split(";") if part.strip()]
+
+        for path in paths:
+            if path.is_dir():
+                candidates = sorted(
+                    p for p in path.iterdir()
+                    if p.is_file() and p.suffix.lower().lstrip(".") in extensions
+                )
+
+            elif path.is_file():
+                candidates = [path]
+
+            else:
+                print(f"Path not found: {path}")
+                continue
+
+            for candidate in candidates:
+                src = candidate.resolve()
+
+                if src in seen:
+                    print(f"Already added: {src.name}")
+                    continue
+
+                info = probe(src)
+
+                if info is not None and not info["ok"]:
+                    print(f"Skipped invalid media: {src.name}")
+                    continue
+
+                seen.add(src)
+                files.append((src, info))
+
+                print(f"Added: {src.name}")
+
+        print(f"{len(files)} files queued.")
+
+
+def batch_destination(src, folder, ext, sources):
+    destination = folder / f"{src.stem}.{ext}"
+    number = 1
+
+    while destination.exists() or destination.is_symlink() or destination.resolve() in sources:
+        destination = folder / f"{src.stem}_{number}.{ext}"
+        number += 1
+
+    return destination
+
+
+def convert_batch(encoders):
+    files = batch_input()
+
+    if not files:
+        return True
+
+    print("\nBATCH CONVERSION")
+    print(f"Total files: {len(files)}")
+
+    for index, (src, info) in enumerate(files, 1):
+        size = format_size(src.stat().st_size)
+
+        if info and info.get("duration"):
+            duration = format_time(info["duration"])
+            print(f"{index}. {src.name} | {size} | {duration}")
+        else:
+            print(f"{index}. {src.name} | {size}")
+
+    formats = list(FORMATS)
+
+    for src, info in files:
+        supported = menu_formats(info, encoders)
+        formats = [ext for ext in formats if ext in supported]
+
+    if not formats:
+        print("No single output format is compatible with every file.")
+        return True
+
+    ext = step_format(formats)
+    quality = step_quality(ext)
+
+    durations = [
+        info["duration"]
+        for _, info in files
+        if info and info.get("duration")
+    ]
+
+    trim_info = {"duration": min(durations)} if durations else None
+
+    print("\nAny selected time range will apply to every file.")
+
+    start, end = step_trim(trim_info, batch=True)
+
+    print("\nChoose one output folder for the entire batch.")
+
+    folder = step_output_dir(files[0][0])
+    sources = {src for src, _ in files}
+    failed = []
+    successful = 0
+
+    print("\nBATCH SETTINGS")
+    print(f"Files: {len(files)}")
+    print(f"Format: {ext.upper()}")
+    print(f"Quality: {quality}")
+    print(f"Output folder: {folder}")
+
+    if not yes_no("Start batch conversion?", True):
+        return True
+
+    for index, (src, info) in enumerate(files, 1):
+        print(f"\n[{index}/{len(files)}] Converting {src.name} to {ext.upper()}...")
+
+        try:
+            destination = batch_destination(src, folder, ext, sources)
+
+            if convert_safely(src, destination, ext, info, start, end, quality, batch=True):
+                successful += 1
+            else:
+                failed.append(src)
+
+        except OSError as error:
+            print(f"Conversion error: {error}")
+            failed.append(src)
+
+        except KeyboardInterrupt:
+            print(f"\nBatch stopped. {successful}/{len(files)} files converted.")
+            return False
+
+        completed = index / len(files)
+        filled = int(completed * 30)
+        bar = "#" * filled + "-" * (30 - filled)
+
+        print(f"Batch progress: [{bar}] {completed * 100:.1f}%")
+
+    print("\n" + "=" * 48)
+    print("BATCH CONVERSION COMPLETE")
+    print("=" * 48)
+
+    print(f"Total files: {len(files)}")
+    print(f"Successful: {successful}")
+    print(f"Failed: {len(failed)}")
+    print(f"Output folder: {folder}")
+
+    if failed:
+        print("\nFailed files:")
+
+        for src in failed:
+            print(f"  {src}")
+
+    return True
+
+
+def step_mode():
+    print("\n1) Convert a single file")
+    print("2) Convert multiple files")
+    print("q) Quit")
+
+    while True:
+        choice = ask("Mode [1]: ").lower() or "1"
+
+        if choice in ("1", "2", "q", "quit", "exit"):
+            return choice
+
+        print("Invalid mode.")
+
+
 def main():
     check_tools()
     encoders = available_encoders()
@@ -669,10 +868,18 @@ def main():
 
     try:
         while True:
-            if not convert_once(encoders):
+            mode = step_mode()
+
+            if mode in ("q", "quit", "exit"):
                 break
 
-            if not yes_no("\nConvert another file?"):
+            if mode == "1" and not convert_once(encoders):
+                break
+
+            if mode == "2" and not convert_batch(encoders):
+                break
+
+            if not yes_no("\nStart another conversion?"):
                 break
 
     except (KeyboardInterrupt, EOFError):
